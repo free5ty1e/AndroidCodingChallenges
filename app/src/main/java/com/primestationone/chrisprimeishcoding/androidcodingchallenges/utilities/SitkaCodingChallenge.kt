@@ -41,6 +41,8 @@ object SitkaCodingChallenge {
      *
      * Original scope estimate: I think I can complete this challenge this evening, in a couple hours.
      *
+     * Completed challenge and cleaning up code @ 2017.09.14 @ ~6:30am first thing in the morning.  Total time spent ~3 hours
+     *
 
     Find a 9 letter string of characters that contains only letters from
 
