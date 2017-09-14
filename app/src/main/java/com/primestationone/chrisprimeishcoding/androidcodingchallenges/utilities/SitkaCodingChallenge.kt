@@ -64,7 +64,6 @@ object SitkaCodingChallenge {
     @JvmStatic
     fun sitkaHash(stringToHash: String): Long {
         var hash: Long = SITKA_CHALLENGE_HASH_INITIAL_VALUE
-
         for (index in 0..(stringToHash.length - 1)) {
             hash = (hash * SITKA_CHALLENGE_HASH_FACTOR + SITKA_CHALLENGE_HASH_LETTERS.indexOf(stringToHash[index]))
         }
@@ -78,6 +77,7 @@ object SitkaCodingChallenge {
         val startTime: Long = Date().time
         for (index in 0..(stringLength - 1)) {
 
+            cyclesToFindAnswer++
         }
         val endTime: Long = Date().time
         val secondsToReverseHash: Double = (endTime - startTime).toDouble() / 1000.0

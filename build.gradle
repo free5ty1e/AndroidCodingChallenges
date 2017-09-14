@@ -17,9 +17,19 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+
+        //For Stetho Realm database visualization https://github.com/uPhyca/stetho-realm
+        maven { url 'https://github.com/uPhyca/stetho-realm/raw/master/maven-repo' }
     }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+ext {
+    androidSupportLibraryVersion = '26.0.0-alpha1'
+    minAndroidSdkVersion = 14   //Min of SDK 14 required to utilize the AppCompat libraries
+    targetAndroidSdkVersion = 26
+    androidBuildToolsVersion = '26.0.1'
 }
