@@ -25,6 +25,7 @@ object SitkaCodingChallenge {
 
     //Let's use Kotlin Extension methods here because it's fun (har)
     private fun BigDecimal.isWholeNumber(): Boolean = this.remainder(BigDecimal(1.0)) == BigDecimal.ZERO
+
     private fun BigDecimal.sitkaUnhash(indexOfLetter: Int): BigDecimal = this.minus(BigDecimal(indexOfLetter)).divide(BigDecimal(83.0), MathContext.DECIMAL128)
 
     /**
@@ -88,11 +89,8 @@ object SitkaCodingChallenge {
      * The theory for reversing this hash function, since it is known, is the following:
      * Take the hash value and divide it by the known hash factor after subtracting each possible character index value,
      *  based on the known string length.
-     * Take note of the indices that result in a whole number from this division;
-     *  these are the only ones we need continue on with for performance's sake
-     * Iterate downward through the hash function, noting possible solutions that result in whole number division all the way down
-     *  until the last division results in the known hash start value.
-     *  Theoretically, we will be left with the original string since we know the character set, the original length and the hash factor
+     * One of the divisions will result in a whole number.  Use the character at this index and continue with the next cycle
+     *  Theoretically, we will be left with the original string since we know the character set, the original length, the start hash value, and the hash factor
      */
     fun sitkaHashReverse(hashToStringify: Long, stringLength: Int): String {
         var operationsToFindAnswer = 0
@@ -101,30 +99,29 @@ object SitkaCodingChallenge {
         val startTime: Long = Date().time
 
 
-//        for (index in 0..(stringLength - 1)) {
-        val index = 0   //TODO: DELETEME ONCE USING LOOP AGAIN
 
-            val lettersToTryWithPreviousHash: MutableMap<Char, Long> = mutableMapOf()
+        for (index in 0..(stringLength - 1)) {
+            val currentUnhashedStringCharIndex = stringLength - 1 - index
+            var foundLetterThisCycle = false
             SITKA_CHALLENGE_HASH_LETTERS.forEachIndexed { indexOfLetter, letter ->
                 val potentialPreviousHashValue = hashTempValue.sitkaUnhash(indexOfLetter)
-                if (potentialPreviousHashValue.isWholeNumber()) {
+                if (!foundLetterThisCycle && potentialPreviousHashValue.isWholeNumber() && potentialPreviousHashValue > BigDecimal.ZERO) {
                     Timber.v(".sitkaHashReverse(): found a whole number for $letter: $potentialPreviousHashValue")
-                    lettersToTryWithPreviousHash[letter] = potentialPreviousHashValue.toLong()
-                } else {
-                    Timber.v(".sitkaHashReverse(): not a whole number for $letter")
+                    unhashedString[currentUnhashedStringCharIndex] = letter
+                    hashTempValue = potentialPreviousHashValue
+                    foundLetterThisCycle = true //Need to utilize a flag to limit results to one character per cycle, since forEachIndexed does not have break/continue functonality as a Kotlin Unit action object
                 }
                 operationsToFindAnswer++
             }
-            val currentUnhashedStringCharIndex = stringLength - 1 - index
             Timber.d(".sitkaHashReverse($hashToStringify, length = $stringLength): " +
-                    "Character index $currentUnhashedStringCharIndex - # letters to try = ${lettersToTryWithPreviousHash.size}, letters to try are $lettersToTryWithPreviousHash")
+                    "Character index $currentUnhashedStringCharIndex - letter is ${unhashedString[currentUnhashedStringCharIndex]}")
 
-//        }
+        }
         val endTime: Long = Date().time
         val secondsToReverseHash: Double = (endTime - startTime).toDouble() / 1000.0
         Timber.i(".sitkaHashReverse($hashToStringify, length = $stringLength) " +
                 "took $operationsToFindAnswer operations to find the answer, in $secondsToReverseHash seconds.")
-        return unhashedString.toString()
+        return String(unhashedString)
     }
 
     fun isWholeNumber(potentialPreviousHashValue: Double) =
