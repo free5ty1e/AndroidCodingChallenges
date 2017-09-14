@@ -30,6 +30,6 @@ task clean(type: Delete) {
 ext {
     androidSupportLibraryVersion = '26.0.0-alpha1'
     minAndroidSdkVersion = 14   //Min of SDK 14 required to utilize the AppCompat libraries
-    targetAndroidSdkVersion = 26
+    targetAndroidSdkVersion = 25    //Only 25 because the sources exist for decompiling purposes, can target 26 whenever
     androidBuildToolsVersion = '26.0.1'
 }
