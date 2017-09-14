@@ -16,22 +16,32 @@ import java.util.*
 
 object SitkaCodingChallenge {
 
-    const val SITKA_CHALLENGE_HASH_LETTERS = "acdekilmnoprstuy"
-    const val SITKA_CHALLENGE_HASH_FACTOR = 83
-    const val SITKA_CHALLENGE_HASH_INITIAL_VALUE = 9
-    const val SITKA_CHALLENGE_HASH_EXAMPLE_WORD5 = "cloud"
-    const val SITKA_CHALLENGE_HASH_CHALLENGE: Long = 1693941520599974437
-    const val SITKA_CHALLENGE_HASH_CHALLENGE_WORD_LENGTH = 9
+    private const val SITKA_CHALLENGE_HASH_LETTERS = "acdekilmnoprstuy"
+    private const val SITKA_CHALLENGE_HASH_FACTOR = 83
+    private const val SITKA_CHALLENGE_HASH_INITIAL_VALUE = 9
+    private const val SITKA_CHALLENGE_HASH_EXAMPLE_WORD5 = "cloud"
+    private const val SITKA_CHALLENGE_HASH_CHALLENGE: Long = 1693941520599974437
+    private const val SITKA_CHALLENGE_HASH_CHALLENGE_WORD_LENGTH = 9
 
     //Let's use Kotlin Extension methods here because it's fun (har)
     private fun BigDecimal.isWholeNumber(): Boolean = this.remainder(BigDecimal(1.0)) == BigDecimal.ZERO
+    private fun BigDecimal.sitkaHashReverseOneStep(indexOfLetter: Int): BigDecimal = this.minus(BigDecimal(indexOfLetter)).divide(BigDecimal(83.0), MathContext.DECIMAL128)
+    private fun String.sitkaHash(): Long {
+        var hash: Long = SITKA_CHALLENGE_HASH_INITIAL_VALUE.toLong()
+        for (index in 0..(this.length - 1)) {
+            val currentChar = this[index]
+            hash = (hash * SITKA_CHALLENGE_HASH_FACTOR.toLong() + SITKA_CHALLENGE_HASH_LETTERS.indexOf(currentChar))
+        }
+        return hash
+    }
 
-    private fun BigDecimal.sitkaUnhash(indexOfLetter: Int): BigDecimal = this.minus(BigDecimal(indexOfLetter)).divide(BigDecimal(83.0), MathContext.DECIMAL128)
 
     /**
      * Looked at and started challenge 2017.09.13 @ ~2:10pm in between interviews
      *
      * Original scope estimate: I think I can complete this challenge this evening, in a couple hours.
+     *
+     * Completed challenge and cleaning up code @ 2017.09.14 @ ~6:30am first thing in the morning.  Total time spent ~3 hours
      *
 
     Find a 9 letter string of characters that contains only letters from
@@ -58,7 +68,7 @@ object SitkaCodingChallenge {
     Please enter the one word solution below and attach your solution as a txt file to avoid filters. *
      */
     fun sitkaChallenge(activity: Activity): String {
-        val sitkaHashOfCloud = sitkaHash(SITKA_CHALLENGE_HASH_EXAMPLE_WORD5)
+        val sitkaHashOfCloud = SITKA_CHALLENGE_HASH_EXAMPLE_WORD5.sitkaHash()
         val sitkaHashReverseOfCloud = sitkaHashReverse(sitkaHashOfCloud, SITKA_CHALLENGE_HASH_EXAMPLE_WORD5.length)
         val sitkaHashReverseOfChallenge = sitkaHashReverse(SITKA_CHALLENGE_HASH_CHALLENGE, SITKA_CHALLENGE_HASH_CHALLENGE_WORD_LENGTH)
 
@@ -75,16 +85,6 @@ object SitkaCodingChallenge {
                 "for a word of length $SITKA_CHALLENGE_HASH_CHALLENGE_WORD_LENGTH is: $sitkaHashReverseOfChallenge"
     }
 
-    fun sitkaHash(stringToHash: String): Long {
-        var hash: Long = SITKA_CHALLENGE_HASH_INITIAL_VALUE.toLong()
-        for (index in 0..(stringToHash.length - 1)) {
-            val currentChar = stringToHash[index]
-            hash = (hash * SITKA_CHALLENGE_HASH_FACTOR.toLong() + SITKA_CHALLENGE_HASH_LETTERS.indexOf(currentChar))
-            Timber.d(".sitkaHash($stringToHash): hash value after currentChar $currentChar with index $index is currently: $hash")
-        }
-        return hash
-    }
-
     /**
      * The theory for reversing this hash function, since it is known, is the following:
      * Take the hash value and divide it by the known hash factor after subtracting each possible character index value,
@@ -92,45 +92,36 @@ object SitkaCodingChallenge {
      * One of the divisions will result in a whole number.  Use the character at this index and continue with the next cycle
      *  Theoretically, we will be left with the original string since we know the character set, the original length, the start hash value, and the hash factor
      */
-    fun sitkaHashReverse(hashToStringify: Long, stringLength: Int): String {
+    private fun sitkaHashReverse(hashToStringify: Long, stringLength: Int): String {
         var operationsToFindAnswer = 0
-        val unhashedString = CharArray(stringLength)
+        val unhashedCharArray = CharArray(stringLength)
         var hashTempValue = BigDecimal(hashToStringify)
+
         val startTime: Long = Date().time
-
-
-
         for (index in 0..(stringLength - 1)) {
             val currentUnhashedStringCharIndex = stringLength - 1 - index
             var foundLetterThisCycle = false
             SITKA_CHALLENGE_HASH_LETTERS.forEachIndexed { indexOfLetter, letter ->
-                val potentialPreviousHashValue = hashTempValue.sitkaUnhash(indexOfLetter)
-                if (!foundLetterThisCycle && potentialPreviousHashValue.isWholeNumber() && potentialPreviousHashValue > BigDecimal.ZERO) {
-                    Timber.v(".sitkaHashReverse(): found a whole number for $letter: $potentialPreviousHashValue")
-                    unhashedString[currentUnhashedStringCharIndex] = letter
-                    hashTempValue = potentialPreviousHashValue
-                    foundLetterThisCycle = true //Need to utilize a flag to limit results to one character per cycle, since forEachIndexed does not have break/continue functonality as a Kotlin Unit action object
+                if (!foundLetterThisCycle) {
+                    val potentialPreviousHashValue = hashTempValue.sitkaHashReverseOneStep(indexOfLetter)
+                    if (potentialPreviousHashValue.isWholeNumber() && potentialPreviousHashValue > BigDecimal.ZERO) {
+                        unhashedCharArray[currentUnhashedStringCharIndex] = letter
+                        hashTempValue = potentialPreviousHashValue
+                        foundLetterThisCycle = true //Need to utilize a flag to limit results to one character per cycle, since forEachIndexed does not have break/continue functonality as a Kotlin Unit action object
+                    }
+                    operationsToFindAnswer++
                 }
-                operationsToFindAnswer++
             }
-            Timber.d(".sitkaHashReverse($hashToStringify, length = $stringLength): " +
-                    "Character index $currentUnhashedStringCharIndex - letter is ${unhashedString[currentUnhashedStringCharIndex]}")
-
         }
         val endTime: Long = Date().time
         val secondsToReverseHash: Double = (endTime - startTime).toDouble() / 1000.0
-        Timber.i(".sitkaHashReverse($hashToStringify, length = $stringLength) " +
-                "took $operationsToFindAnswer operations to find the answer, in $secondsToReverseHash seconds.")
-        return String(unhashedString)
+        val unhashedString = String(unhashedCharArray)
+        Timber.v(".sitkaHashReverse($hashToStringify, length = $stringLength) " +
+                "took $operationsToFindAnswer operations to find the answer ($unhashedString), in $secondsToReverseHash seconds.")
+        return unhashedString
     }
 
-    fun isWholeNumber(potentialPreviousHashValue: Double) =
-            potentialPreviousHashValue % 1.0 == 0.0
-
-    fun isWholeNumber(potentialPreviousHashValue: Float) =
-            potentialPreviousHashValue % 1.0 == 0.0
-
-    fun copyToClipboard(activity: Activity, toCopy: String?) {
+    private fun copyToClipboard(activity: Activity, toCopy: String?) {
         val clipLabel = "clipboardText"
         (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).primaryClip = ClipData.newPlainText(clipLabel, toCopy)
         Toast.makeText(activity, "String \'$toCopy\' has been copied to the clipboard with label $clipLabel!", Toast.LENGTH_LONG).show()
